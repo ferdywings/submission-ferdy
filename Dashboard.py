@@ -1,7 +1,8 @@
 import os
 import pandas as pd
 import streamlit as st
-
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 # Load data
 orders_df = pd.read_csv("order_sharing_data.csv")
