@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import streamlit as st
 import seaborn as sns
@@ -9,21 +10,20 @@ payments_df = pd.read_csv("payments_sharing_data.csv")
 product_category_df = pd.read_csv("product_category_sharing_data.csv")
 products_df = pd.read_csv("products_sharing_data.csv")
 reviews_df = pd.read_csv("reviews_sharing_data.csv")
+order_items_df = pd.read_csv("order_sharing_data.csv")
 
 # Calculate total sales
 total_sales = orders_df["price"].sum()
 
-# Count payment methods
-payment_counts = payments_df["payment_type"].value_counts()
+# Menghitung distribusi metode pembayaran
+payment_distribution = payments_df["payment_type"].value_counts().reset_index()
+payment_distribution.columns = ["Metode Pembayaran", "Jumlah Transaksi"]
 
-# Merge order and product data
-merged_orders_products = orders_df.merge(products_df, on="product_id", how="left")
-merged_orders_products = merged_orders_products.merge(product_category_df, 
-                                                       left_on="product_category_name", 
-                                                       right_on="product_category_name", 
-                                                       how="left")
-# Calculate top product categories
-category_sales = merged_orders_products.groupby("product_category_name_english")["price"].sum().nlargest(10)
+# Merge order_items with products and categories for Top Categories
+merged_df = order_items_df.merge(products_df, on="product_id", how="left")
+merged_df = merged_df.merge(product_category_df, on="product_category_name", how="left")
+category_sales = merged_df["product_category_name_english"].value_counts().reset_index()
+category_sales.columns = ["Kategori", "Jumlah Penjualan"]
 
 # Count review scores
 review_scores = reviews_df["review_score"].value_counts().sort_index()
@@ -43,14 +43,23 @@ if page == "Overview":
     st.metric(label="Total Sales", value=f"${total_sales:,.2f}")
 
 elif page == "Payment Methods":
-    st.subheader("Payment Methods Used")
-    st.bar_chart(payment_counts)
+    st.subheader("Distribusi Metode Pembayaran yang Digunakan Pelanggan")
+    fig, ax = plt.subplots(figsize=(10, 5))
+    sns.barplot(data=payment_distribution, x="Jumlah Transaksi", y="Metode Pembayaran", hue="Metode Pembayaran", palette="coolwarm", legend=False, ax=ax)
+    ax.set_xlabel("Jumlah Transaksi", fontsize=12)
+    ax.set_ylabel("Metode Pembayaran", fontsize=12)
+    ax.set_title("Distribusi Metode Pembayaran yang Digunakan Pelanggan", fontsize=14)
+    ax.grid(axis='x', linestyle='--', alpha=0.7)
+    st.pyplot(fig)
 
 elif page == "Top Categories":
-    st.subheader("Top 10 Product Categories by Sales")
-    fig, ax = plt.subplots()
-    sns.barplot(y=category_sales.index, x=category_sales.values, ax=ax, palette="coolwarm")
-    ax.set_xlabel("Sales")
+    st.subheader("10 Kategori Produk Terlaris")
+    fig, ax = plt.subplots(figsize=(12, 6))
+    sns.barplot(data=category_sales.head(10), x="Jumlah Penjualan", y="Kategori", hue="Kategori", palette="viridis", legend=False, ax=ax)
+    ax.set_xlabel("Jumlah Penjualan", fontsize=12)
+    ax.set_ylabel("Kategori Produk", fontsize=12)
+    ax.set_title("10 Kategori Produk Terlaris", fontsize=14)
+    ax.grid(axis='x', linestyle='--', alpha=0.7)
     st.pyplot(fig)
 
 elif page == "Review Scores":
